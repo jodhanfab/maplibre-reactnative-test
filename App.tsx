@@ -63,11 +63,9 @@ const App = () => {
     }, [searchQuery]);
 
     const handlePlaceSelect = (selectedPlace: any) => {
-        console.log(selectedPlace)
         const {coordinates} = selectedPlace.geometry;
 
         if (coordinates && Array.isArray(coordinates)) {
-            // Update the current position immediately
             setCurrentPosition([coordinates[0], coordinates[1]]);
             setSuggestions([]);
             setSearchQuery('')
@@ -76,11 +74,13 @@ const App = () => {
         }
     };
 
-    const getUserLocation = () => {
-        Geolocation.getCurrentPosition(
+    const getUserLocation = async () => {
+        await Geolocation.getCurrentPosition(
             position => {
                 const {latitude, longitude} = position.coords;
                 setCurrentPosition([longitude, latitude]);
+                setSuggestions([]);
+                setSearchQuery('')
             },
             error => {
                 console.error('Error getting current position', error);
@@ -175,9 +175,9 @@ const styles = StyleSheet.create({
     },
     suggestions: {
         position: 'absolute',
-        top: 60,
-        left: 20,
-        right: 20,
+        top: 6,
+        left: 7,
+        right: 7,
         backgroundColor: 'white',
         borderRadius: 8,
         paddingHorizontal: 10,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     searchInput: {
-        height: 40,
+        height: 50,
         backgroundColor: 'white',
         borderRadius: 8,
         paddingHorizontal: 10,
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     },
     locationButton: {
         position: 'absolute',
-        top: 8,
-        right: 60,
+        top: 70,
+        right: 10,
         backgroundColor: '#007bff',
         borderRadius: 50,
         padding: 6,
