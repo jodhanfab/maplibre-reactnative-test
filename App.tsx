@@ -40,7 +40,7 @@ const App = () => {
 
     useEffect(() => {
         if (searchQuery) {
-            const url = `https://api.stadiamaps.com/geocoding/v1/autocomplete?text=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
+            const url = `https://api.maptiler.com/maps/streets/style.json?key=${apiKey}`;
 
             fetch(url)
                 .then(response => {
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     },
     suggestions: {
         position: 'absolute',
-        top: 20,
+        top: 60,
         left: 20,
         right: 20,
         backgroundColor: 'white',
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     },
     locationButton: {
         position: 'absolute',
-        top: 80,
-        right: 20,
+        top: 8,
+        right: 60,
         backgroundColor: '#007bff',
         borderRadius: 50,
         padding: 6,
