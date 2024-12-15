@@ -25,22 +25,8 @@ const App = () => {
     const actionSheetRef = useRef<ActionSheetRef>(null);
 
     useEffect(() => {
-        // Get initial location
-        Geolocation.getCurrentPosition(
-            position => {
-                const {latitude, longitude} = position.coords;
-                setCurrentPosition([longitude, latitude]);
-            },
-            error => {
-                console.error('Error getting current position', error);
-            },
-            {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000}
-        );
-    }, []);
-
-    useEffect(() => {
         if (searchQuery) {
-            const url = `https://api.maptiler.com/maps/streets/style.json?key=${apiKey}`;
+            const url = `https://api.stadiamaps.com/geocoding/v1/autocomplete?text=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
 
             fetch(url)
                 .then(response => {
@@ -98,7 +84,7 @@ const App = () => {
             >
                 {currentPosition && (
                     <MapLibreGL.Camera
-                        zoomLevel={14}
+                        zoomLevel={12}
                         pitch={50}
                         centerCoordinate={currentPosition}
                         animationMode="flyTo"
@@ -178,9 +164,9 @@ const styles = StyleSheet.create({
         top: 6,
         left: 7,
         right: 7,
-        backgroundColor: 'white',
+        backgroundColor: '#dcdcdc',
         borderRadius: 8,
-        paddingHorizontal: 10,
+        paddingHorizontal: 0,
         shadowColor: '#000',
         shadowOffset: {width: 0, height: 2},
         shadowOpacity: 0.2,
@@ -199,14 +185,15 @@ const styles = StyleSheet.create({
     },
     suggestionItem: {
         paddingVertical: 8,
+        paddingHorizontal: 8,
         borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+        borderBottomColor: 'rgba(147,147,147,0.52)',
     },
     locationButton: {
         position: 'absolute',
         top: 70,
         right: 10,
-        backgroundColor: '#007bff',
+        backgroundColor: '#df6851',
         borderRadius: 50,
         padding: 6,
         shadowColor: '#000',
@@ -227,9 +214,9 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     bottomButton: {
-        paddingVertical: 15,
-        paddingHorizontal: 30,
-        backgroundColor: '#007bff',
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        backgroundColor: '#df6851',
         borderRadius: 8,
     },
     buttonText: {
@@ -243,7 +230,7 @@ const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 20,
         marginTop: 10,
-        backgroundColor: '#6c6c6c',
+        backgroundColor: '#df6851',
         justifyContent: 'center',
         alignItems: 'center',
     },
