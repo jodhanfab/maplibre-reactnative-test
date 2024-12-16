@@ -2,23 +2,21 @@ import {FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View,} f
 import React, {useEffect, useRef, useState} from 'react';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import Geolocation from '@react-native-community/geolocation';
-import {MAPTILER_KEY, STADIA_KEY} from './src/utils/key';
+import {MAPTILER_KEY} from './src/utils/key';
 import ActionSheet, {ActionSheetRef, ScrollView} from "react-native-actions-sheet";
 
 MapLibreGL.setAccessToken(null);
 
-const apiKey = STADIA_KEY;
 const styleUrl = `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`;
 
 const App = () => {
     const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [suggestions, setSuggestions] = useState<any[]>([]);
     const actionSheetRef = useRef<ActionSheetRef>(null);
 
-    useEffect(() => {
+    const searchLocation = () => {
         if (searchQuery) {
-            const url = `https://api.stadiamaps.com/geocoding/v1/autocomplete?text=${encodeURIComponent(searchQuery)}&api_key=${apiKey}`;
+            const url = `https://api.maptiler.com/geocoding/${searchQuery}.json?key=${MAPTILER_KEY}`;
 
             fetch(url)
                 .then(response => {
@@ -28,36 +26,23 @@ const App = () => {
                     return response.json();
                 })
                 .then(data => {
-                    if (data.features) {
-                        setSuggestions(data.features);
+                    if (data.features[0]) {
+                        console.log(data.features)
+                        setCurrentPosition(data.features[0].center)
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching autocomplete suggestions', error);
                 });
-        } else {
-            setSuggestions([]);
         }
-    }, [searchQuery]);
+    }
 
-    const handlePlaceSelect = (selectedPlace: any) => {
-        const {coordinates} = selectedPlace.geometry;
-
-        if (coordinates && Array.isArray(coordinates)) {
-            setCurrentPosition([coordinates[0], coordinates[1]]);
-            setSuggestions([]);
-            setSearchQuery('')
-        } else {
-            console.error("Invalid coordinates:", coordinates);
-        }
-    };
 
     const getUserLocation = async () => {
         await Geolocation.getCurrentPosition(
             position => {
                 const {latitude, longitude} = position.coords;
                 setCurrentPosition([longitude, latitude]);
-                setSuggestions([]);
                 setSearchQuery('')
             },
             error => {
@@ -69,21 +54,6 @@ const App = () => {
 
     return (
         <View style={styles.page}>
-            <MapLibreGL.MapView
-                key={currentPosition ? `${currentPosition[0]},${currentPosition[1]}` : ''}
-                style={styles.map}
-                styleURL={styleUrl}
-            >
-                {currentPosition && (
-                    <MapLibreGL.Camera
-                        zoomLevel={12}
-                        pitch={50}
-                        centerCoordinate={currentPosition}
-                        animationMode="flyTo"
-                        animationDuration={1000}
-                    />
-                )}
-            </MapLibreGL.MapView>
 
             <View style={styles.suggestions}>
                 <TextInput
@@ -92,19 +62,32 @@ const App = () => {
                     onChangeText={text => setSearchQuery(text)}
                     value={searchQuery}
                 />
-                <FlatList
-                    data={suggestions}
-                    renderItem={({item}) => (
-                        <TouchableOpacity
-                            style={styles.suggestionItem}
-                            onPress={() => handlePlaceSelect(item)}
-                        >
-                            <Text>{item.properties.label}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyExtractor={item => item.properties.id}
-                />
+                <TouchableOpacity
+                    style={styles.searchButton}
+                    onPress={searchLocation}
+                >
+                    <Image
+                        source={require('./static/images/search.png')}
+                        style={styles.locationIcon}
+                    />
+                </TouchableOpacity>
             </View>
+            <MapLibreGL.MapView
+                key={currentPosition ? `${currentPosition[0]},${currentPosition[1]}` : ''}
+                style={styles.map}
+                styleURL={styleUrl}
+            >
+                {currentPosition && (
+                    <MapLibreGL.Camera
+                        zoomLevel={10}
+                        pitch={50}
+                        centerCoordinate={currentPosition}
+                        animationMode="flyTo"
+                        animationDuration={1000}
+                    />
+                )}
+            </MapLibreGL.MapView>
+
 
             <TouchableOpacity
                 style={styles.locationButton}
@@ -152,19 +135,17 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     suggestions: {
-        position: 'absolute',
-        top: 6,
-        left: 7,
-        right: 7,
-        backgroundColor: '#dcdcdc',
+        flexDirection: 'row', // Layout children horizontally
+        alignItems: 'center', // Center vertically
+        justifyContent: 'space-between', // Adjust spacing (optional)
         borderRadius: 8,
-        paddingHorizontal: 0,
+        paddingHorizontal: 10,
         shadowColor: '#000',
-        shadowOffset: {width: 0, height: 2},
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
-        elevation: 3,
     },
+
     searchInput: {
         height: 50,
         backgroundColor: 'white',
@@ -184,10 +165,21 @@ const styles = StyleSheet.create({
     locationButton: {
         position: 'absolute',
         top: 70,
-        right: 10,
+        left: 10,
         backgroundColor: '#df6851',
         borderRadius: 50,
         padding: 6,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    searchButton: {
+        backgroundColor: '#3789cf',
+        borderRadius: 3,
+        height:35,
+        padding: 2,
         shadowColor: '#000',
         shadowOffset: {width: 0, height: 2},
         shadowOpacity: 0.2,
