@@ -1,82 +1,65 @@
-import {FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View,} from 'react-native';
+import {Image, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import React, {useEffect, useRef, useState} from 'react';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import Geolocation from '@react-native-community/geolocation';
 import {MAPTILER_KEY} from './src/utils/key';
-import ActionSheet, {ActionSheetRef, ScrollView} from "react-native-actions-sheet";
+import ActionSheet, {ScrollView} from 'react-native-actions-sheet';
+import * as turf from "@turf/turf";
+import {bangaloreGeoJson} from "./src/utils/geo-location.ts";
+import {LogBox} from 'react-native';
 
+LogBox.ignoreAllLogs();
 MapLibreGL.setAccessToken(null);
 
 const styleUrl = `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`;
 
 const App = () => {
-    const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
+    const [currentPosition, setCurrentPosition] = useState<number[] | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const actionSheetRef = useRef<ActionSheetRef>(null);
+    const actionSheetRef = useRef(null);
 
     const searchLocation = () => {
         if (searchQuery) {
-            const url = `https://api.maptiler.com/geocoding/${searchQuery}.json?key=${MAPTILER_KEY}`;
-
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP Error: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.features[0]) {
-                        console.log(data.features)
-                        setCurrentPosition(data.features[0].center)
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching autocomplete suggestions', error);
-                });
+            fetch(`https://api.maptiler.com/geocoding/${searchQuery}.json?key=${MAPTILER_KEY}`)
+                .then(response => response.ok ? response.json() : Promise.reject(response.status))
+                .then(data => data.features[0] && setCurrentPosition(data.features[0].center))
+                .catch(error => console.error('Error fetching location:', error));
         }
-    }
+    };
 
-
-    const getUserLocation = async () => {
-        await Geolocation.getCurrentPosition(
-            position => {
-                const {latitude, longitude} = position.coords;
-                setCurrentPosition([longitude, latitude]);
-                setSearchQuery('')
-            },
-            error => {
-                console.error('Error getting current position', error);
-            },
+    const getUserLocation = () => {
+        Geolocation.getCurrentPosition(
+            ({coords: {latitude, longitude}}) => setCurrentPosition([longitude, latitude]),
+            error => console.error('Error getting position:', error),
             {enableHighAccuracy: true, timeout: 15000, maximumAge: 0}
         );
     };
 
+    const createPolygon = () => {
+        return turf.polygon(bangaloreGeoJson.features[0].geometry.coordinates);
+    };
+
+    const geoJsonData = createPolygon();
+
+    const NavigateToPolygon = () => {
+        setCurrentPosition([77.713337, 12.881258])
+    }
+
     return (
         <View style={styles.page}>
-
             <View style={styles.suggestions}>
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search a place..."
-                    onChangeText={text => setSearchQuery(text)}
+                    placeholderTextColor="#999"
+                    onChangeText={setSearchQuery}
                     value={searchQuery}
                 />
-                <TouchableOpacity
-                    style={styles.searchButton}
-                    onPress={searchLocation}
-                >
-                    <Image
-                        source={require('./static/images/search.png')}
-                        style={styles.locationIcon}
-                    />
+                <TouchableOpacity style={styles.searchButton} onPress={searchLocation}>
+                    <Image source={require('./static/images/search.png')} style={styles.locationIcon}/>
                 </TouchableOpacity>
             </View>
-            <MapLibreGL.MapView
-                key={currentPosition ? `${currentPosition[0]},${currentPosition[1]}` : ''}
-                style={styles.map}
-                styleURL={styleUrl}
-            >
+            <MapLibreGL.MapView style={styles.map} styleURL={styleUrl}>
                 {currentPosition && (
                     <MapLibreGL.Camera
                         zoomLevel={10}
@@ -86,81 +69,61 @@ const App = () => {
                         animationDuration={1000}
                     />
                 )}
+                <MapLibreGL.ShapeSource id="polygonSource" shape={geoJsonData}>
+                    <MapLibreGL.FillLayer
+                        id="polygonFill"
+                        style={bangaloreGeoJson.style}
+                    />
+                </MapLibreGL.ShapeSource>
             </MapLibreGL.MapView>
-
-
-            <TouchableOpacity
-                style={styles.locationButton}
-                onPress={getUserLocation}
-            >
-                <Image
-                    source={require('./static/images/25530.png')}
-                    style={styles.locationIcon}
-                />
+            <TouchableOpacity style={styles.locationButton} onPress={getUserLocation}>
+                <Image source={require('./static/images/25530.png')} style={styles.locationIcon}/>
             </TouchableOpacity>
-
             <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    activeOpacity={.9}
-                    style={styles.bottomButton}
-                    onPress={() => actionSheetRef.current?.show()}
-                >
+                <TouchableOpacity style={styles.bottomButton} onPress={() => actionSheetRef.current.show()}>
                     <Text style={styles.buttonText}>Open Bottom Sheet</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.bottomButton} onPress={NavigateToPolygon}>
+                    <Text style={styles.buttonText}>Turf Polygon</Text>
+                </TouchableOpacity>
             </View>
-
-            <ActionSheet
-                ref={actionSheetRef}
-                containerStyle={styles.bottomSheet}
-                gestureEnabled={true}
-                overlayColor={'gray'}
-            >
+            <ActionSheet ref={actionSheetRef} containerStyle={styles.bottomSheet} gestureEnabled overlayColor="gray">
                 <ScrollView/>
-                <View style={styles.bottomCard}>
-                    <Text style={styles.buttonText}>Card 1</Text>
-                </View>
-                <View style={styles.bottomCard}>
-                    <Text style={styles.buttonText}>Card 2</Text>
-                </View>
+                <View style={styles.bottomCard}><Text style={styles.buttonText}>Card 1</Text></View>
+                <View style={styles.bottomCard}><Text style={styles.buttonText}>Card 2</Text></View>
             </ActionSheet>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    page: {
-        flex: 1,
-    },
-    map: {
-        flex: 1,
-    },
+    page: {flex: 1},
+    map: {flex: 1},
     suggestions: {
-        flexDirection: 'row', // Layout children horizontally
-        alignItems: 'center', // Center vertically
-        justifyContent: 'space-between', // Adjust spacing (optional)
-        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-    },
-
-    searchInput: {
-        height: 50,
+        paddingVertical: 8,
         backgroundColor: 'white',
-        borderRadius: 8,
-        paddingHorizontal: 10,
         shadowColor: '#000',
         shadowOffset: {width: 0, height: 2},
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.1,
         shadowRadius: 4,
+        elevation: 3,
     },
-    suggestionItem: {
-        paddingVertical: 8,
-        paddingHorizontal: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(147,147,147,0.52)',
+    searchInput: {
+        height: 40,
+        backgroundColor: 'white',
+        borderRadius: 8,
+        paddingHorizontal: 15,
+        fontSize: 16,
+        flex: 1,
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 2},
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     locationButton: {
         position: 'absolute',
@@ -177,38 +140,31 @@ const styles = StyleSheet.create({
     },
     searchButton: {
         backgroundColor: '#3789cf',
-        borderRadius: 3,
-        height:35,
-        padding: 2,
+        borderRadius: 50,
+        height: 40,
+        width: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 10,
         shadowColor: '#000',
         shadowOffset: {width: 0, height: 2},
         shadowOpacity: 0.2,
         shadowRadius: 4,
         elevation: 3,
     },
-    locationIcon: {
-        width: 30,
-        height: 30,
-        tintColor: 'white',
-    },
+    locationIcon: {width: 30, height: 30, tintColor: 'white'},
     buttonContainer: {
-        position: "absolute",
+        position: 'absolute',
         bottom: 20,
-        alignSelf: "center",
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        flexDirection: 'row', // Align buttons horizontally
+        justifyContent: 'space-around', // Distribute buttons evenly
         zIndex: 1,
     },
-    bottomButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        backgroundColor: '#df6851',
-        borderRadius: 8,
-    },
-    buttonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
+    bottomButton: {paddingVertical: 8, paddingHorizontal: 15, backgroundColor: '#df6851', borderRadius: 8},
+    buttonText: {color: 'white', fontSize: 16, fontWeight: 'bold', textAlign: 'center'},
     bottomCard: {
         height: 80,
         padding: 20,
@@ -216,14 +172,9 @@ const styles = StyleSheet.create({
         marginTop: 10,
         backgroundColor: '#df6851',
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'center'
     },
-    bottomSheet: {
-        display: "flex",
-        flexDirection: 'column',
-        padding: 20,
-        zIndex: 50
-    },
+    bottomSheet: {flexDirection: 'column', padding: 20, zIndex: 50},
 });
 
 export default App;

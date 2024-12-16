@@ -13,6 +13,7 @@
     "@maplibre/maplibre-react-native": "^10.0.0-alpha.28",
     "@react-native-community/geolocation": "^3.0.6",
     "@react-native/gradle-plugin": "^0.76.5",
+    "@turf/turf": "^7.1.0",
     "react": "18.3.1",
     "react-native": "0.76.5",
     "react-native-actions-sheet": "^0.9.7",
