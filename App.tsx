@@ -1,22 +1,14 @@
-import {
-    View,
-    TextInput,
-    FlatList,
-    TouchableOpacity,
-    StyleSheet,
-    Text,
-    Image,
-} from 'react-native';
+import {FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View,} from 'react-native';
 import React, {useEffect, useRef, useState} from 'react';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import Geolocation from '@react-native-community/geolocation';
-import {STADIA_KEY} from './src/utils/key';
+import {MAPTILER_KEY, STADIA_KEY} from './src/utils/key';
 import ActionSheet, {ActionSheetRef, ScrollView} from "react-native-actions-sheet";
 
 MapLibreGL.setAccessToken(null);
 
 const apiKey = STADIA_KEY;
-const styleUrl = `https://tiles.stadiamaps.com/styles/osm_bright.json?api_key=${apiKey}`;
+const styleUrl = `https://api.maptiler.com/maps/streets/style.json?key=${MAPTILER_KEY}`;
 
 const App = () => {
     const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
