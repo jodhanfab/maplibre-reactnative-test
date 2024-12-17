@@ -27,10 +27,16 @@ const App = () => {
         }
     };
 
-    const getUserLocation = () => {
-        Geolocation.getCurrentPosition(
-            ({coords: {latitude, longitude}}) => setCurrentPosition([longitude, latitude]),
-            error => console.error('Error getting position:', error),
+    const getUserLocation = async () => {
+        await Geolocation.getCurrentPosition(
+            position => {
+                const {latitude, longitude} = position.coords;
+                setCurrentPosition([longitude, latitude]);
+                setSearchQuery('')
+            },
+            error => {
+                console.error('Error getting current position', error);
+            },
             {enableHighAccuracy: true, timeout: 15000, maximumAge: 0}
         );
     };
